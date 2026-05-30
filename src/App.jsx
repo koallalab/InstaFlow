@@ -1,81 +1,100 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
-const sections = [
-  { id: "overview", label: "Visão Geral" },
-  { id: "personality", label: "Personalidade" },
-  { id: "flows", label: "Fluxos Prontos" },
-  { id: "technical", label: "Estrutura Técnica" },
-  { id: "prompt", label: "Prompt Mestre" },
-  { id: "commercial", label: "Estratégia Comercial" },
-  { id: "extras", label: "Funções Extras" },
-  { id: "delivery", label: "Entrega Final" },
+const NAV = [
+  { id: "overview", label: "Visão Geral", icon: "⬡" },
+  { id: "personality", label: "Personalidade", icon: "◈" },
+  { id: "flows", label: "Fluxos", icon: "⟋" },
+  { id: "technical", label: "Stack Técnica", icon: "⬢" },
+  { id: "prompt", label: "Prompt Mestre", icon: "◉" },
+  { id: "commercial", label: "Comercial", icon: "◆" },
+  { id: "extras", label: "Add-ons", icon: "✦" },
+  { id: "delivery", label: "Entrega", icon: "▲" },
 ];
 
-const flowData = {
-  "Primeiro Atendimento": {
-    color: "#00E5FF",
+const FLOWS = {
+  "Primeiro Contato": {
+    tag: "TOP FUNIL",
+    tagColor: "#7C3AED",
     steps: [
-      { role: "cliente", msg: "Oi, vi vocês no Instagram!" },
-      { role: "ia", msg: "Oiii! 😊 Que bom que você chegou até a gente! Seja muito bem-vindo(a)! Sou a **Luna**, assistente virtual da [Loja]. Posso te ajudar a encontrar exatamente o que você precisa.\n\nMe conta: o que você está buscando hoje? 🛍️" },
-      { role: "cliente", msg: "Quero ver os produtos" },
-      { role: "ia", msg: "Perfeito! Temos algumas categorias incríveis que você vai amar 💛\n\n1️⃣ Moda Feminina\n2️⃣ Acessórios\n3️⃣ Promoções do Dia\n\nQual te interessa mais? Posso já te mandar as fotos e preços! 📸" },
+      { role: "client", msg: "Oi, vi vocês no Instagram!" },
+      { role: "ai", msg: "Oiii! 😊 Que bom que você chegou até a gente!\n\nSou a Luna, da [Loja]. Me conta: o que você está buscando hoje? 🛍️" },
+      { role: "client", msg: "Quero ver os produtos" },
+      { role: "ai", msg: "Perfeito! Temos categorias incríveis que você vai amar 💛\n\n1️⃣ Moda Feminina\n2️⃣ Acessórios\n3️⃣ Promoções do Dia\n\nQual te interessa? Mando as fotos e preços na hora!" },
     ]
   },
-  "Cliente Pergunta Preço": {
-    color: "#69FF47",
+  "Objeção de Preço": {
+    tag: "CONVERSÃO",
+    tagColor: "#0EA5E9",
     steps: [
-      { role: "cliente", msg: "Qual o preço desse vestido?" },
-      { role: "ia", msg: "Boa escolha! Esse vestido é um dos nossos queridinhos 😍\n\nEle está por **R$ 189,90** e ainda tem frete GRÁTIS para todo o Brasil!\n\n✅ Disponível nas cores: preto, nude e vinho\n✅ Tamanhos: P, M, G, GG\n✅ Entrega em 5 a 8 dias úteis\n\nQuer garantir o seu? Posso te enviar o link de pagamento agora mesmo! 🔗" },
-      { role: "cliente", msg: "Tá caro..." },
-      { role: "ia", msg: "Entendo! 😊 Posso te ajudar com isso.\n\nOlha, além do preço justo, você também leva:\n🎁 Brinde surpresa\n📦 Embalagem presenteável\n🔄 Troca grátis em 30 dias\n\nE posso aplicar um cupom de **10% OFF** pra você: **LUNA10**\n\nFicou **R$ 170,91**. Fechamos? 🤝" },
+      { role: "client", msg: "Qual o preço desse vestido?" },
+      { role: "ai", msg: "Boa escolha! Esse é um dos nossos queridinhos 😍\n\n💰 R$ 189,90 com frete GRÁTIS\n✅ Cores: preto, nude, vinho\n✅ Tamanhos: P ao GG\n\nQuer garantir o seu agora?" },
+      { role: "client", msg: "Tá caro..." },
+      { role: "ai", msg: "Entendo! 😊 Olha o que consigo fazer por você:\n\n🎁 Brinde surpresa incluso\n📦 Embalagem premium\n🔄 Troca grátis em 30 dias\n\nE ainda aplico cupom de 10% OFF: **LUNA10**\n\nFicou R$ 170,91. Fechamos? 🤝" },
     ]
   },
-  "Cliente Pergunta Prazo": {
-    color: "#FF6B6B",
+  "Recuperação": {
+    tag: "RETENÇÃO",
+    tagColor: "#10B981",
     steps: [
-      { role: "cliente", msg: "Quando chega se eu pedir hoje?" },
-      { role: "ia", msg: "Ótima pergunta! ⏱️\n\nPedidos feitos até as **18h** saem no mesmo dia.\n\n📦 Prazo estimado:\n• Capitais: 3 a 5 dias úteis\n• Interior: 5 a 8 dias úteis\n• Express disponível! (+R$ 15)\n\nPosso rastrear seu pedido em tempo real pelo WhatsApp também 📍\n\nQuer garantir o seu agora para já sair hoje?" },
+      { role: "ai", msg: "Oi [Nome]! 👋 Seu carrinho ainda está guardadinho aqui...\n\nPreparei um mimo especial pra você:\n🎁 Cupom **VOLTEI10** — 10% OFF\n⏰ Válido por 2 horas!\n\nQuer o link direto?" },
+      { role: "client", msg: "sim!" },
+      { role: "ai", msg: "Maravilhoso! 🎉\n\n🔗 [link-exclusivo]\n\nUsa o cupom **VOLTEI10** no checkout.\n\nQualquer dúvida, estou aqui! 💛" },
     ]
   },
-  "Recuperação de Carrinho": {
-    color: "#FFD93D",
+  "Fechamento": {
+    tag: "VENDA",
+    tagColor: "#F59E0B",
     steps: [
-      { role: "ia", msg: "Oi [Nome]! 👋 Notei que você ficou de olho em alguns produtos ontem...\n\nSeu carrinho ainda está guardadinho esperando por você! 🛒\n\nComo a gente gosta de você, preparei um mimo especial:\n🎁 **Cupom: VOLTEI10** — 10% OFF só pra você\n⏰ Válido por apenas **2 horas!**\n\nQuer que eu te envie o link direto? É só dizer 'sim'! 😊" },
-      { role: "cliente", msg: "sim!" },
-      { role: "ia", msg: "Maravilhoso! 🎉 Aqui está seu link exclusivo:\n\n🔗 [link-do-carrinho]\n\nLembra de usar o cupom **VOLTEI10** no checkout!\n\nQualquer dúvida, pode me chamar. Boa compra! 💛" },
-    ]
-  },
-  "Fechamento da Venda": {
-    color: "#C77DFF",
-    steps: [
-      { role: "ia", msg: "Perfeito [Nome]! Vamos finalizar sua compra? 🎉\n\nResumo do pedido:\n📦 [Produto] — R$ [valor]\n🚚 Frete: GRÁTIS\n💳 Total: R$ [valor]\n\nFormas de pagamento:\n💳 Cartão (até 12x)\n📱 Pix (5% desconto)\n🎫 Boleto\n\nQual prefere?" },
-      { role: "cliente", msg: "Pix!" },
-      { role: "ia", msg: "Ótima escolha! Com Pix você ainda ganha **5% desconto** 🤑\n\nValor com desconto: **R$ [valor]**\n\nAqui está seu link de pagamento:\n🔗 [link-pix]\n\nAssim que confirmar, você recebe o código de rastreio por aqui mesmo! 📦✅" },
+      { role: "ai", msg: "Vamos finalizar sua compra? 🎉\n\n📦 [Produto] — R$ [valor]\n🚚 Frete: GRÁTIS\n💳 Total: R$ [valor]\n\nFormas de pagamento:\n💳 Cartão (12x)\n📱 Pix (5% OFF)\n🎫 Boleto\n\nQual prefere?" },
+      { role: "client", msg: "Pix!" },
+      { role: "ai", msg: "Ótima escolha! Ganhou 5% de desconto 🤑\n\n🔗 [link-pix]\n\nAsim que confirmar, você recebe o rastreio aqui mesmo! 📦✅" },
     ]
   },
 };
 
-const promptMaster = `Você é Luna, assistente virtual da [NOME DA LOJA], uma loja online especializada em [NICHO].
+const STACK = [
+  { name: "ManyChat", icon: "💬", color: "#7C3AED", bg: "#7C3AED18", desc: "Orquestra os fluxos visuais no Instagram DM e WhatsApp. Captura dados e gerencia a jornada.", tags: ["Instagram", "WhatsApp", "No-code"] },
+  { name: "Make.com", icon: "⚙️", color: "#0EA5E9", bg: "#0EA5E918", desc: "Liga tudo: recebe webhook do ManyChat, chama a OpenAI e devolve a resposta ao cliente.", tags: ["Webhook", "Automação", "Grátis"] },
+  { name: "OpenAI GPT-4o", icon: "🧠", color: "#10B981", bg: "#10B98118", desc: "O cérebro da Luna. Processa mensagens livres e responde com linguagem natural.", tags: ["IA", "GPT-4o-mini", "API"] },
+  { name: "WhatsApp Business", icon: "📱", color: "#F59E0B", bg: "#F59E0B18", desc: "Canal de maior conversão. Resposta automática 24h via API oficial da Meta.", tags: ["Meta API", "24h", "Oficial"] },
+];
+
+const PRICING = [
+  { name: "Starter", setup: "R$ 497", monthly: "R$ 197/mês", color: "#7C3AED", features: ["Fluxo básico WhatsApp", "Prompt personalizado", "3 gatilhos automáticos", "Suporte 7 dias"] },
+  { name: "Pro", setup: "R$ 997", monthly: "R$ 397/mês", color: "#0EA5E9", highlight: true, features: ["Tudo do Starter", "Instagram + WhatsApp", "Recuperação de carrinho", "Integração OpenAI", "Cupom automático", "Suporte 30 dias"] },
+  { name: "Premium", setup: "R$ 1.997", monthly: "R$ 697/mês", color: "#10B981", features: ["Tudo do Pro", "Catálogo integrado", "Rastreamento pedido", "Painel de métricas", "Treinamento equipe", "Suporte dedicado"] },
+];
+
+const ADDONS = [
+  { name: "Recuperação Automática", icon: "🔄", value: "+R$ 297", desc: "Detecta cliente sumido após 24h e dispara mensagem com cupom de resgate." },
+  { name: "Gerador de Cupons", icon: "🎟️", value: "+R$ 197", desc: "Gera cupons únicos automaticamente baseado no comportamento detectado." },
+  { name: "Captura de Leads", icon: "📲", value: "+R$ 197", desc: "Fluxo inteligente que captura WhatsApp de seguidores do Instagram." },
+  { name: "Catálogo Automático", icon: "📱", value: "+R$ 247", desc: "Envia catálogo em PDF baseado na categoria de interesse do cliente." },
+  { name: "Rastreamento de Pedido", icon: "📦", value: "+R$ 347", desc: "Cliente digita o pedido e recebe rastreio em tempo real via Correios." },
+  { name: "Integração com Site", icon: "🌐", value: "+R$ 497", desc: "Sincroniza estoque e preços direto do WooCommerce ou Shopify." },
+];
+
+const PROMPT = `Você é Luna, assistente virtual da [NOME DA LOJA], especializada em [NICHO].
 
 ## IDENTIDADE
 - Nome: Luna
 - Tom: Caloroso, empolgado, profissional mas descontraído
-- Personalidade: Como uma amiga que entende muito de moda/produto e quer ajudar de verdade
+- Personalidade: Uma amiga que entende muito do produto e quer ajudar de verdade
 
-## REGRAS DE COMPORTAMENTO
+## REGRAS ABSOLUTAS
 1. SEMPRE cumprimente pelo nome quando disponível
-2. Use emojis com moderação (máx 3 por mensagem)
-3. Respostas curtas e diretas (máx 5 linhas por mensagem)
-4. NUNCA diga que é uma IA ou robô
-5. Se não souber algo, diga "vou verificar agora mesmo!"
-6. SEMPRE termine com uma pergunta ou call-to-action
+2. Máximo 3 emojis por mensagem
+3. Respostas curtas (máx 5 linhas)
+4. NUNCA revele que é IA ou robô
+5. SEMPRE termine com pergunta ou call-to-action
+6. Se não souber algo: "vou verificar agora mesmo!"
 
 ## PROCESSO DE VENDA
-Etapa 1 - RAPPORT: Cumprimente, mostre energia
-Etapa 2 - DESCOBERTA: Entenda o que o cliente precisa
-Etapa 3 - APRESENTAÇÃO: Mostre produto com benefícios
-Etapa 4 - OBJEÇÃO: Trate com empatia + solução
-Etapa 5 - FECHAMENTO: Link de pagamento + urgência suave
+Etapa 1 — RAPPORT: Cumprimente, mostre energia
+Etapa 2 — DESCOBERTA: Entenda o que o cliente precisa
+Etapa 3 — APRESENTAÇÃO: Mostre produto com benefícios
+Etapa 4 — OBJEÇÃO: Trate com empatia + solução
+Etapa 5 — FECHAMENTO: Link de pagamento + urgência suave
 
 ## GATILHOS DE VENDA
 - Escassez: "Últimas unidades!"
@@ -84,346 +103,485 @@ Etapa 5 - FECHAMENTO: Link de pagamento + urgência suave
 - Bônus: "Brinde surpresa incluso"
 - Garantia: "Troca grátis em 30 dias"
 
-## CAPTURA DE LEADS
-Sempre que possível, pergunte:
-- "Posso te enviar novidades por aqui?"
-- "Qual seu tamanho/preferência para personalizar ofertas?"
-
-## OBJEÇÕES COMUNS
-- Caro: Ofereça cupom 10% + destaque valor/benefícios
-- Não conheço a loja: Mostre avaliações/prints
-- Vou pensar: Crie urgência + ofereça garantia
-- Frete caro: Verifique se qualifica frete grátis
+## TRATAMENTO DE OBJEÇÕES
+- Caro → Ofereça cupom 10% + destaque valor
+- Não conheço → Mostre avaliações
+- Vou pensar → Crie urgência + garantia
+- Frete caro → Verifique frete grátis
 
 ## DADOS DA LOJA
-[PREENCHER: nome, horário, prazo entrega, política troca, redes sociais, site]
+[Nome, horário, prazo entrega, política troca, redes sociais, site]`;
 
-## FORMATO DAS RESPOSTAS
-- Português brasileiro coloquial
-- Parágrafos curtos
-- Use negrito para destaques importantes
-- Liste opções numeradas quando houver escolha`;
-
-const technicalStack = [
-  {
-    tool: "ManyChat",
-    icon: "💬",
-    color: "#FF6B6B",
-    role: "Automação de fluxos",
-    desc: "Cria os fluxos visuais para Instagram DM e WhatsApp. Captura dados, aciona gatilhos e gerencia a jornada do cliente.",
-    steps: ["Crie conta no ManyChat", "Conecte Instagram + WhatsApp Business", "Crie fluxo de boas-vindas", "Configure palavras-chave gatilho", "Integre via Webhook com Make.com"]
-  },
-  {
-    tool: "OpenAI API",
-    icon: "🧠",
-    color: "#00E5FF",
-    role: "Inteligência da IA",
-    desc: "Processa mensagens livres, responde com linguagem natural e executa o prompt mestre. Usa GPT-4o-mini para custo-benefício.",
-    steps: ["Crie conta na OpenAI", "Gere API Key", "Configure o prompt mestre", "Defina temperatura 0.7", "Use gpt-4o-mini (barato)"]
-  },
-  {
-    tool: "Make.com",
-    icon: "⚙️",
-    color: "#69FF47",
-    role: "Integração central",
-    desc: "Liga tudo: recebe webhook do ManyChat, envia para OpenAI, devolve resposta ao cliente. É o cérebro da operação.",
-    steps: ["Crie cenário Webhook → OpenAI → ManyChat", "Configure módulo HTTP para OpenAI", "Parse a resposta JSON", "Envie de volta via ManyChat API", "Adicione filtros e condicionais"]
-  },
-  {
-    tool: "WhatsApp Business",
-    icon: "📱",
-    color: "#FFD93D",
-    role: "Canal principal",
-    desc: "Canal de maior conversão. Configure via API oficial ou integração nativa do ManyChat para resposta automática 24h.",
-    steps: ["Crie conta Business", "Solicite acesso à API (Meta)", "Conecte ao ManyChat", "Configure mensagem de saudação", "Ative respostas automáticas"]
-  },
-];
-
-const niches = [
-  { name: "Moda Feminina", icon: "👗", potential: "⭐⭐⭐⭐⭐", why: "Alta demanda por DM, ticket médio R$150+" },
-  { name: "Pet Shop", icon: "🐾", potential: "⭐⭐⭐⭐⭐", why: "Donos compulsivos, nicho emocional" },
-  { name: "Cosméticos", icon: "💄", potential: "⭐⭐⭐⭐⭐", why: "Muitas dúvidas = precisa de atendimento" },
-  { name: "Suplementos", icon: "💪", potential: "⭐⭐⭐⭐", why: "Perguntas técnicas = IA brilha" },
-  { name: "Decoração", icon: "🏠", potential: "⭐⭐⭐⭐", why: "Catálogos extensos, cliente indeciso" },
-  { name: "Infantil", icon: "🧸", potential: "⭐⭐⭐⭐⭐", why: "Mães muito ativas no Instagram" },
-];
-
-const pricing = [
-  { plan: "Starter", price: "R$ 497", period: "setup + R$ 197/mês", color: "#69FF47", includes: ["Fluxo básico WhatsApp", "Prompt personalizado", "3 gatilhos automáticos", "Suporte 7 dias"] },
-  { plan: "Pro", price: "R$ 997", period: "setup + R$ 397/mês", color: "#00E5FF", includes: ["Tudo do Starter", "Instagram + WhatsApp", "Recuperação de carrinho", "Integração OpenAI", "Cupom automático", "Suporte 30 dias"], highlight: true },
-  { plan: "Premium", price: "R$ 1.997", period: "setup + R$ 697/mês", color: "#C77DFF", includes: ["Tudo do Pro", "Catálogo integrado", "Rastreamento de pedido", "Painel de métricas", "Treinamento da equipe", "Suporte dedicado"] },
-];
-
-const extras = [
-  { name: "Recuperação Automática", icon: "🔄", desc: "Detecta cliente sumido após 24h e envia mensagem personalizada com cupom de resgate", value: "R$ 297" },
-  { name: "Envio de Cupom", icon: "🎟️", desc: "Gera e envia cupons únicos automaticamente baseado no comportamento do cliente", value: "R$ 197" },
-  { name: "Captura de Telefone", icon: "📲", desc: "Fluxo inteligente que captura WhatsApp de seguidores do Instagram de forma natural", value: "R$ 197" },
-  { name: "Catálogo Automatizado", icon: "📱", desc: "Envia catálogo em PDF ou fotos baseado na categoria de interesse detectada", value: "R$ 247" },
-  { name: "Rastreamento de Pedido", icon: "📦", desc: "Cliente digita o pedido e recebe atualização de rastreio em tempo real via Correios API", value: "R$ 347" },
-  { name: "Integração com Site", icon: "🌐", desc: "Sincroniza estoque, preços e links de produto direto do WooCommerce ou Shopify", value: "R$ 497" },
-];
-
-export default function VendAIPro() {
-  const [activeSection, setActiveSection] = useState("overview");
-  const [activeFlow, setActiveFlow] = useState("Primeiro Atendimento");
+export default function InstaFlow() {
+  const [active, setActive] = useState("overview");
+  const [activeFlow, setActiveFlow] = useState("Primeiro Contato");
   const [copied, setCopied] = useState(false);
+  const [hoveredCard, setHoveredCard] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handle = (e) => setMousePos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", handle);
+    return () => window.removeEventListener("mousemove", handle);
+  }, []);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(promptMaster);
+    navigator.clipboard.writeText(PROMPT);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div style={{
-      fontFamily: "'Syne', 'DM Sans', sans-serif",
-      background: "#060608",
-      color: "#E8E8F0",
+    <div ref={containerRef} style={{
+      fontFamily: "'DM Mono', 'Fira Code', monospace",
+      background: "#06060F",
+      color: "#E2E8FF",
       minHeight: "100vh",
       position: "relative",
+      overflow: "hidden",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #0d0d14; }
-        ::-webkit-scrollbar-thumb { background: #00E5FF44; border-radius: 2px; }
-        .nav-btn { transition: all 0.2s; border: none; cursor: pointer; }
-        .nav-btn:hover { background: #ffffff12 !important; }
-        .nav-btn.active { background: #00E5FF18 !important; color: #00E5FF !important; border-left: 2px solid #00E5FF !important; }
-        .flow-btn { transition: all 0.2s; cursor: pointer; border: 1px solid #ffffff18; }
-        .flow-btn:hover { border-color: #00E5FF44 !important; }
-        .flow-btn.active-flow { border-color: #00E5FF !important; background: #00E5FF12 !important; }
-        .card { transition: transform 0.2s, box-shadow 0.2s; }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px #00000060; }
-        .highlight-plan { position: relative; }
-        .highlight-plan::before { content: 'MAIS VENDIDO'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #00E5FF; color: #060608; font-size: 10px; font-weight: 800; padding: 2px 10px; border-radius: 20px; white-space: nowrap; letter-spacing: 1px; }
-        .bubble-ia { background: linear-gradient(135deg, #1a1a2e, #16213e); border-left: 3px solid #00E5FF; }
-        .bubble-client { background: #1e1e2e; border-left: 3px solid #69FF47; }
-        .grid-bg { background-image: radial-gradient(circle, #ffffff08 1px, transparent 1px); background-size: 30px 30px; }
-        .glow-text { text-shadow: 0 0 40px #00E5FF66; }
-        .tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
-        pre { white-space: pre-wrap; word-break: break-word; }
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Sora:wght@300;400;600;700;800&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        ::-webkit-scrollbar { width: 3px; height: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #7C3AED55; border-radius: 10px; }
+
+        .glow-cursor {
+          position: fixed;
+          width: 600px; height: 600px;
+          border-radius: 50%;
+          background: radial-gradient(circle, #7C3AED0A 0%, transparent 70%);
+          pointer-events: none;
+          z-index: 0;
+          transform: translate(-50%, -50%);
+          transition: left 0.8s ease, top 0.8s ease;
+        }
+
+        .nav-item {
+          display: flex; align-items: center; gap: 10px;
+          padding: 9px 14px; border-radius: 8px;
+          cursor: pointer; transition: all 0.15s;
+          font-family: 'DM Mono', monospace;
+          font-size: 12px; color: #4A5080;
+          border: 1px solid transparent;
+          letter-spacing: 0.02em;
+          background: transparent;
+          width: 100%; text-align: left;
+        }
+        .nav-item:hover { color: #A0A8D8; background: #FFFFFF06; }
+        .nav-item.active {
+          color: #C4B5FD;
+          background: linear-gradient(135deg, #7C3AED12, #0EA5E908);
+          border-color: #7C3AED30;
+        }
+        .nav-icon { font-size: 11px; opacity: 0.7; min-width: 14px; }
+
+        .section-title {
+          font-family: 'Sora', sans-serif;
+          font-size: 28px; font-weight: 800;
+          letter-spacing: -0.03em;
+          background: linear-gradient(135deg, #E2E8FF 0%, #A78BFA 60%, #38BDF8 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 6px;
+        }
+
+        .card {
+          background: #0D0D1F;
+          border: 1px solid #1A1A35;
+          border-radius: 14px;
+          padding: 20px;
+          transition: all 0.2s;
+          position: relative;
+          overflow: hidden;
+        }
+        .card::before {
+          content: '';
+          position: absolute; inset: 0;
+          background: linear-gradient(135deg, transparent, #7C3AED08);
+          opacity: 0; transition: opacity 0.3s;
+          pointer-events: none;
+        }
+        .card:hover { border-color: #7C3AED44; transform: translateY(-1px); }
+        .card:hover::before { opacity: 1; }
+
+        .tag {
+          display: inline-flex; align-items: center;
+          padding: 3px 10px; border-radius: 20px;
+          font-size: 10px; font-weight: 500;
+          letter-spacing: 0.08em; text-transform: uppercase;
+          font-family: 'DM Mono', monospace;
+        }
+
+        .flow-tab {
+          padding: 7px 16px; border-radius: 6px;
+          font-size: 11px; font-family: 'DM Mono', monospace;
+          cursor: pointer; transition: all 0.15s;
+          border: 1px solid #1A1A35;
+          background: transparent; color: #4A5080;
+          letter-spacing: 0.05em;
+        }
+        .flow-tab:hover { color: #A0A8D8; border-color: #2A2A45; }
+        .flow-tab.active-tab { color: #C4B5FD; background: #7C3AED18; border-color: #7C3AED44; }
+
+        .bubble-ai {
+          background: linear-gradient(135deg, #0D0D2A, #12122A);
+          border: 1px solid #7C3AED33;
+          border-radius: 14px 14px 14px 2px;
+          padding: 12px 16px;
+          max-width: 78%;
+          font-size: 12.5px; line-height: 1.7;
+          white-space: pre-wrap;
+        }
+        .bubble-client {
+          background: #0F1628;
+          border: 1px solid #0EA5E933;
+          border-radius: 14px 14px 2px 14px;
+          padding: 12px 16px;
+          max-width: 78%;
+          font-size: 12.5px; line-height: 1.7;
+          color: #BAC8F0;
+        }
+
+        .grid-dots {
+          background-image: radial-gradient(circle, #FFFFFF08 1px, transparent 1px);
+          background-size: 28px 28px;
+        }
+
+        .metric-card {
+          background: #0D0D1F;
+          border: 1px solid #1A1A35;
+          border-radius: 12px; padding: 18px 20px;
+          transition: all 0.2s;
+        }
+        .metric-card:hover { border-color: #7C3AED33; }
+
+        .kbd {
+          background: #12122A; border: 1px solid #2A2A45;
+          border-radius: 5px; padding: 2px 8px;
+          font-family: 'DM Mono', monospace; font-size: 11px;
+          color: #7C85B0;
+        }
+
+        .highlight-plan {
+          background: linear-gradient(135deg, #0F0F28, #12102A) !important;
+          border-color: #7C3AED66 !important;
+        }
+
+        .step-dot {
+          width: 28px; height: 28px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 11px; font-weight: 600; flex-shrink: 0;
+          font-family: 'Sora', sans-serif;
+        }
+
+        .copy-btn {
+          padding: 8px 18px; border-radius: 8px;
+          font-size: 11px; font-family: 'DM Mono', monospace;
+          cursor: pointer; transition: all 0.15s;
+          letter-spacing: 0.05em;
+          border: none;
+        }
+
+        .progress-bar {
+          height: 3px; border-radius: 10px; background: #1A1A35;
+          overflow: hidden;
+        }
+        .progress-fill {
+          height: 100%; border-radius: 10px;
+          background: linear-gradient(90deg, #7C3AED, #0EA5E9);
+        }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.3s ease forwards; }
+
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+        .live-dot {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: #10B981;
+          animation: pulse-dot 1.8s ease infinite;
+        }
       `}</style>
 
+      {/* Ambient glow that follows mouse */}
+      <div className="glow-cursor" style={{ left: mousePos.x, top: mousePos.y }} />
+
+      {/* Background grid */}
+      <div className="grid-dots" style={{
+        position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
+        opacity: 0.6,
+      }} />
+
       {/* Header */}
-      <div style={{
-        background: "linear-gradient(135deg, #0a0a14 0%, #0d1a2e 50%, #0a0a14 100%)",
-        borderBottom: "1px solid #ffffff0f",
-        padding: "28px 32px",
-        display: "flex", alignItems: "center", gap: 16,
-        position: "sticky", top: 0, zIndex: 100,
+      <header style={{
+        position: "sticky", top: 0, zIndex: 50,
+        background: "rgba(6,6,15,0.85)",
+        backdropFilter: "blur(20px)",
+        borderBottom: "1px solid #1A1A35",
+        padding: "0 28px",
+        height: 56,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: 10,
-          background: "linear-gradient(135deg, #00E5FF, #0080FF)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 20, fontWeight: 800, color: "#060608",
-        }}>V</div>
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.5px" }}>
-            Insta<span style={{ color: "#00E5FF" }}>Flow</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: "linear-gradient(135deg, #7C3AED, #0EA5E9)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 14, fontWeight: 700, color: "#fff",
+            fontFamily: "'Sora', sans-serif",
+          }}>IF</div>
+          <div>
+            <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, letterSpacing: "-0.02em" }}>
+              Insta<span style={{ background: "linear-gradient(90deg, #A78BFA, #38BDF8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Flow</span>
+            </span>
           </div>
-          <div style={{ fontSize: 11, color: "#666", letterSpacing: "2px", textTransform: "uppercase" }}>Agente de Vendas IA Completo</div>
+          <div style={{ width: 1, height: 20, background: "#1A1A35", margin: "0 4px" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div className="live-dot" />
+            <span style={{ fontSize: 10, color: "#10B981", fontFamily: "'DM Mono', monospace", letterSpacing: "0.08em" }}>SISTEMA ATIVO</span>
+          </div>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <span className="tag" style={{ background: "#00E5FF18", color: "#00E5FF", border: "1px solid #00E5FF44" }}>WhatsApp</span>
-          <span className="tag" style={{ background: "#C77DFF18", color: "#C77DFF", border: "1px solid #C77DFF44" }}>Instagram</span>
-          <span className="tag" style={{ background: "#69FF4718", color: "#69FF47", border: "1px solid #69FF4744" }}>IA 24h</span>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", maxWidth: 1400, margin: "0 auto" }}>
-
-        {/* Sidebar */}
-        <div style={{
-          width: 220, minWidth: 220, padding: "24px 12px",
-          position: "sticky", top: 73, height: "calc(100vh - 73px)",
-          overflowY: "auto", borderRight: "1px solid #ffffff08",
-        }}>
-          {sections.map(s => (
-            <button
-              key={s.id}
-              className={`nav-btn ${activeSection === s.id ? "active" : ""}`}
-              onClick={() => setActiveSection(s.id)}
-              style={{
-                width: "100%", textAlign: "left", padding: "10px 14px",
-                background: "transparent", color: activeSection === s.id ? "#00E5FF" : "#888",
-                borderRadius: 8, fontSize: 13, fontWeight: 500,
-                display: "block", marginBottom: 2, borderLeft: "2px solid transparent",
-              }}
-            >{s.label}</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {["WhatsApp", "Instagram", "24h IA"].map((t, i) => (
+            <span key={t} className="tag" style={{
+              background: ["#7C3AED18","#0EA5E918","#10B98118"][i],
+              color: ["#A78BFA","#38BDF8","#6EE7B7"][i],
+              border: `1px solid ${["#7C3AED33","#0EA5E933","#10B98133"][i]}`,
+            }}>{t}</span>
           ))}
         </div>
+      </header>
 
-        {/* Main Content */}
-        <div style={{ flex: 1, padding: "32px 40px", maxWidth: 1000 }}>
+      <div style={{ display: "flex", position: "relative", zIndex: 1 }}>
 
-          {/* OVERVIEW */}
-          {activeSection === "overview" && (
-            <div>
-              <div className="grid-bg" style={{
-                borderRadius: 16, padding: "40px", marginBottom: 32,
-                border: "1px solid #ffffff0a", position: "relative", overflow: "hidden",
+        {/* Sidebar */}
+        <aside style={{
+          width: 210, minWidth: 210,
+          padding: "24px 12px",
+          position: "sticky", top: 56,
+          height: "calc(100vh - 56px)",
+          overflowY: "auto",
+          borderRight: "1px solid #1A1A3588",
+          background: "rgba(6,6,15,0.6)",
+          backdropFilter: "blur(10px)",
+        }}>
+          <div style={{ fontSize: 9, color: "#2A3060", letterSpacing: "0.15em", marginBottom: 12, padding: "0 14px", fontFamily: "'DM Mono', monospace" }}>
+            NAVEGAÇÃO
+          </div>
+          {NAV.map(n => (
+            <button key={n.id} className={`nav-item ${active === n.id ? "active" : ""}`} onClick={() => setActive(n.id)}>
+              <span className="nav-icon">{n.icon}</span>
+              {n.label}
+            </button>
+          ))}
+
+          <div style={{ margin: "24px 14px 12px", height: 1, background: "#1A1A35" }} />
+          <div style={{ fontSize: 9, color: "#2A3060", letterSpacing: "0.15em", marginBottom: 12, padding: "0 14px", fontFamily: "'DM Mono', monospace" }}>
+            STATS
+          </div>
+          {[["MRR Potencial", "R$ 6.370", "#A78BFA"], ["Clientes Alvo", "10 lojas", "#38BDF8"], ["ROI Cliente", "3x em 30d", "#6EE7B7"]].map(([l,v,c]) => (
+            <div key={l} style={{ padding: "8px 14px" }}>
+              <div style={{ fontSize: 10, color: "#4A5080", marginBottom: 2 }}>{l}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: c, fontFamily: "'Sora', sans-serif" }}>{v}</div>
+            </div>
+          ))}
+        </aside>
+
+        {/* Content */}
+        <main style={{ flex: 1, padding: "36px 44px", maxWidth: 960, overflowY: "auto" }}>
+
+          {/* ── OVERVIEW ── */}
+          {active === "overview" && (
+            <div className="fade-up">
+              <div style={{
+                background: "linear-gradient(135deg, #0D0D1F 0%, #0F0A28 50%, #0A1228 100%)",
+                border: "1px solid #1A1A35",
+                borderRadius: 18, padding: "40px 44px", marginBottom: 32,
+                position: "relative", overflow: "hidden",
               }}>
                 <div style={{
-                  position: "absolute", top: -80, right: -80,
-                  width: 300, height: 300, borderRadius: "50%",
-                  background: "radial-gradient(circle, #00E5FF22, transparent 70%)",
+                  position: "absolute", top: -120, right: -120,
+                  width: 400, height: 400, borderRadius: "50%",
+                  background: "radial-gradient(circle, #7C3AED18, transparent 70%)",
                   pointerEvents: "none",
                 }} />
-                <div className="tag" style={{ background: "#00E5FF18", color: "#00E5FF", border: "1px solid #00E5FF33", marginBottom: 16 }}>SOLUÇÃO COMPLETA</div>
-                <h1 className="glow-text" style={{ fontSize: 42, fontWeight: 800, margin: "0 0 12px", letterSpacing: "-1px" }}>
+                <div style={{
+                  position: "absolute", bottom: -80, left: -80,
+                  width: 300, height: 300, borderRadius: "50%",
+                  background: "radial-gradient(circle, #0EA5E910, transparent 70%)",
+                  pointerEvents: "none",
+                }} />
+
+                <span className="tag" style={{ background: "#7C3AED18", color: "#A78BFA", border: "1px solid #7C3AED44", marginBottom: 20, display: "inline-flex" }}>
+                  SOLUÇÃO COMPLETA
+                </span>
+
+                <h1 style={{
+                  fontFamily: "'Sora', sans-serif",
+                  fontSize: 48, fontWeight: 800,
+                  letterSpacing: "-0.04em",
+                  background: "linear-gradient(135deg, #FFFFFF 0%, #C4B5FD 50%, #38BDF8 100%)",
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  lineHeight: 1.1, marginBottom: 14,
+                }}>
                   InstaFlow
                 </h1>
-                <p style={{ fontSize: 16, color: "#aaa", maxWidth: 600, lineHeight: 1.6, margin: "0 0 32px" }}>
-                  O agente de vendas com IA mais completo para lojas no Instagram e WhatsApp. Vende, atende e recupera clientes 24 horas por dia, sem você precisar estar online.
+
+                <p style={{ fontSize: 15, color: "#7C85B0", maxWidth: 560, lineHeight: 1.7, marginBottom: 36, fontFamily: "'Sora', sans-serif", fontWeight: 300 }}>
+                  Agente de vendas com IA para lojas no Instagram e WhatsApp. Vende, atende e recupera clientes 24 horas por dia.
                 </p>
-                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                  {[["💰", "Aumenta vendas", "em até 300%"], ["🤖", "Atendimento", "24h automático"], ["📈", "Captura leads", "sem esforço"], ["🔄", "Recupera", "clientes perdidos"]].map(([icon, t1, t2]) => (
-                    <div key={t1} style={{
-                      background: "#0d0d18", border: "1px solid #ffffff0f",
-                      borderRadius: 12, padding: "16px 20px", minWidth: 140,
-                    }}>
-                      <div style={{ fontSize: 24, marginBottom: 8 }}>{icon}</div>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>{t1}</div>
-                      <div style={{ fontSize: 12, color: "#00E5FF" }}>{t2}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
-              <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 20 }}>🗺️ Estrutura Completa do Agente</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
-                {[
-                  { title: "Etapa 1 — Boas-vindas", icon: "👋", color: "#00E5FF", desc: "Cumprimento automático, coleta nome, identifica intenção do cliente" },
-                  { title: "Etapa 2 — Descoberta", icon: "🔍", color: "#69FF47", desc: "Pergunta o que o cliente busca, segmenta por categoria e interesse" },
-                  { title: "Etapa 3 — Apresentação", icon: "🛍️", color: "#FFD93D", desc: "Envia produtos, fotos, preços e benefícios de forma personalizada" },
-                  { title: "Etapa 4 — Objeção", icon: "🤝", color: "#FF6B6B", desc: "Trata preço, prazo e desconfiança com empatia e argumentos" },
-                  { title: "Etapa 5 — Fechamento", icon: "💳", color: "#C77DFF", desc: "Envia link de pagamento, cria urgência, confirma pedido" },
-                  { title: "Etapa 6 — Pós-venda", icon: "📦", color: "#FF9F43", desc: "Envia rastreio, pede avaliação, oferece próxima compra" },
-                ].map(item => (
-                  <div className="card" key={item.title} style={{
-                    background: "#0d0d18", border: `1px solid ${item.color}22`,
-                    borderRadius: 12, padding: "18px 20px",
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                      <span style={{ fontSize: 20 }}>{item.icon}</span>
-                      <span style={{ fontWeight: 700, fontSize: 13, color: item.color }}>{item.title}</span>
-                    </div>
-                    <p style={{ fontSize: 13, color: "#888", margin: 0, lineHeight: 1.5 }}>{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-
-              <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>⚡ Gatilhos de Venda Automáticos</h2>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {["🔥 Escassez — últimas unidades", "⏰ Urgência — promoção por tempo", "👥 Prova social — 500+ clientes", "🎁 Bônus surpresa incluso", "🔄 Garantia de troca 30 dias", "💸 Cupom exclusivo por DM", "📲 Frete grátis acima de X", "🏆 Mais vendido da semana"].map(g => (
-                  <span key={g} className="tag" style={{
-                    background: "#1a1a2a", border: "1px solid #ffffff18",
-                    color: "#ccc", fontSize: 12, padding: "6px 14px", borderRadius: 20,
-                  }}>{g}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* PERSONALITY */}
-          {activeSection === "personality" && (
-            <div>
-              <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>🎭 Personalidade da IA</h1>
-              <p style={{ color: "#888", marginBottom: 32 }}>A IA que parece humana e vende como os melhores vendedores</p>
-
-              <div style={{
-                background: "linear-gradient(135deg, #0d1a2e, #1a0d2e)",
-                border: "1px solid #00E5FF33", borderRadius: 16, padding: 28, marginBottom: 24,
-              }}>
-                <div style={{ fontSize: 24, fontWeight: 800, marginBottom: 4, color: "#00E5FF" }}>🌙 Luna</div>
-                <div style={{ color: "#888", fontSize: 13, marginBottom: 20 }}>Sua assistente virtual de vendas</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                   {[
-                    ["Tom de voz", "Caloroso, empolgado, amigável — como uma amiga que entende muito do produto"],
-                    ["Linguagem", "Português coloquial brasileiro, sem formalidade excessiva, sem gírias forçadas"],
-                    ["Emojis", "Moderados, 1-3 por mensagem, sempre contextuais e não forçados"],
-                    ["Tamanho", "Respostas curtas (3-5 linhas), claras e diretas ao ponto"],
-                    ["Energia", "Alta disposição, sempre positiva, nunca apática ou mecânica"],
-                    ["Identidade", "NUNCA se identifica como IA, responde como atendente real da loja"],
-                  ].map(([k, v]) => (
-                    <div key={k} style={{ background: "#0d0d18", borderRadius: 10, padding: 14 }}>
-                      <div style={{ fontSize: 11, color: "#00E5FF", fontWeight: 700, letterSpacing: 1, marginBottom: 4, textTransform: "uppercase" }}>{k}</div>
-                      <div style={{ fontSize: 13, color: "#ccc", lineHeight: 1.5 }}>{v}</div>
+                    ["↑ 300%", "Aumento em vendas", "#7C3AED"],
+                    ["24h", "Atendimento ativo", "#0EA5E9"],
+                    ["0s", "Tempo de resposta", "#10B981"],
+                    ["∞", "Escalabilidade", "#F59E0B"],
+                  ].map(([val, label, color]) => (
+                    <div key={label} className="metric-card" style={{ minWidth: 130, flex: 1 }}>
+                      <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 24, fontWeight: 800, color, marginBottom: 4 }}>{val}</div>
+                      <div style={{ fontSize: 11, color: "#4A5080" }}>{label}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>✅ Faça vs ❌ Evite</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div style={{ background: "#0d180d", border: "1px solid #69FF4733", borderRadius: 12, padding: 20 }}>
-                  <div style={{ fontWeight: 700, color: "#69FF47", marginBottom: 12 }}>✅ Luna FAZ</div>
-                  {["Chama pelo nome sempre que possível", "Termina com pergunta ou CTA", "Usa 'a gente' no lugar de 'nós'", "Celebra a escolha do cliente", "Oferece ajuda proativamente", "Cria urgência sem pressão"].map(i => (
-                    <div key={i} style={{ fontSize: 13, color: "#aaa", marginBottom: 6, paddingLeft: 8, borderLeft: "2px solid #69FF4755" }}>
-                      {i}
-                    </div>
-                  ))}
-                </div>
-                <div style={{ background: "#180d0d", border: "1px solid #FF6B6B33", borderRadius: 12, padding: 20 }}>
-                  <div style={{ fontWeight: 700, color: "#FF6B6B", marginBottom: 12 }}>❌ Luna EVITA</div>
-                  {["\"Conforme solicitado...\"", "\"Prezado cliente\"", "Responder sem CTA", "Textos longos e densos", "Dizer que é robô/IA", "Ignorar objeções de preço"].map(i => (
-                    <div key={i} style={{ fontSize: 13, color: "#aaa", marginBottom: 6, paddingLeft: 8, borderLeft: "2px solid #FF6B6B55" }}>
-                      {i}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* FLOWS */}
-          {activeSection === "flows" && (
-            <div>
-              <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>💬 Fluxos de Conversa Prontos</h1>
-              <p style={{ color: "#888", marginBottom: 24 }}>Copie e use — exemplos reais de atendimento automatizado</p>
-
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 28 }}>
-                {Object.keys(flowData).map(f => (
-                  <button
-                    key={f}
-                    className={`flow-btn ${activeFlow === f ? "active-flow" : ""}`}
-                    onClick={() => setActiveFlow(f)}
-                    style={{
-                      padding: "8px 16px", borderRadius: 20, fontSize: 13,
-                      background: "transparent", color: activeFlow === f ? flowData[f].color : "#888",
-                      cursor: "pointer",
-                    }}
-                  >{f}</button>
+              <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 18, color: "#7C85B0", letterSpacing: "-0.01em" }}>
+                ESTRUTURA DO AGENTE — 6 ETAPAS
+              </h2>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 32 }}>
+                {[
+                  ["01", "Boas-vindas", "Cumprimento automático, coleta nome, identifica intenção", "#7C3AED"],
+                  ["02", "Descoberta", "Pergunta o que busca, segmenta por categoria e interesse", "#0EA5E9"],
+                  ["03", "Apresentação", "Envia produtos, fotos, preços e benefícios personalizados", "#10B981"],
+                  ["04", "Objeção", "Trata preço, prazo, desconfiança com empatia e argumentos", "#F59E0B"],
+                  ["05", "Fechamento", "Envia link de pagamento, cria urgência, confirma pedido", "#EF4444"],
+                  ["06", "Pós-venda", "Envia rastreio, pede avaliação, oferece próxima compra", "#8B5CF6"],
+                ].map(([num, title, desc, color]) => (
+                  <div key={num} className="card" style={{ borderColor: `${color}22` }}>
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: color, marginBottom: 8, letterSpacing: "0.1em" }}>ETAPA {num}</div>
+                    <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{title}</div>
+                    <div style={{ fontSize: 12, color: "#4A5080", lineHeight: 1.5 }}>{desc}</div>
+                  </div>
                 ))}
               </div>
 
+              <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 16, color: "#7C85B0" }}>GATILHOS DE VENDA</h2>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {["🔥 Escassez — últimas unidades", "⏰ Urgência — tempo limitado", "👥 Prova social — 500+ clientes", "🎁 Bônus surpresa incluso", "🔄 Garantia 30 dias", "💸 Cupom exclusivo por DM", "📲 Frete grátis acima de X", "🏆 Mais vendido da semana"].map(g => (
+                  <span key={g} className="tag" style={{ background: "#0D0D1F", border: "1px solid #1A1A35", color: "#7C85B0", padding: "6px 12px", fontSize: 11 }}>{g}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── PERSONALITY ── */}
+          {active === "personality" && (
+            <div className="fade-up">
+              <div style={{ marginBottom: 8 }}>
+                <span className="tag" style={{ background: "#0EA5E918", color: "#38BDF8", border: "1px solid #0EA5E933", marginBottom: 12, display: "inline-flex" }}>PERSONA</span>
+              </div>
+              <h1 className="section-title">Luna — A IA Vendedora</h1>
+              <p style={{ color: "#4A5080", marginBottom: 32, fontSize: 13, fontFamily: "'Sora', sans-serif" }}>A assistente virtual que parece humana e vende como os melhores vendedores</p>
+
               <div style={{
-                background: "#0d0d18", border: `1px solid ${flowData[activeFlow].color}33`,
-                borderRadius: 16, padding: 24,
+                background: "linear-gradient(135deg, #0D0D2A, #0A1228)",
+                border: "1px solid #7C3AED33", borderRadius: 16, padding: 28, marginBottom: 24,
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: flowData[activeFlow].color }} />
-                  <span style={{ fontWeight: 700, color: flowData[activeFlow].color }}>{activeFlow}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #7C3AED, #0EA5E9)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 22,
+                  }}>🌙</div>
+                  <div>
+                    <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 18, color: "#C4B5FD" }}>Luna</div>
+                    <div style={{ fontSize: 11, color: "#4A5080", fontFamily: "'DM Mono', monospace" }}>Assistente Virtual de Vendas</div>
+                  </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {flowData[activeFlow].steps.map((step, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: step.role === "ia" ? "flex-start" : "flex-end" }}>
-                      <div
-                        className={step.role === "ia" ? "bubble-ia" : "bubble-client"}
-                        style={{
-                          maxWidth: "78%", borderRadius: 14, padding: "12px 16px",
-                          fontSize: 13, lineHeight: 1.6,
-                        }}
-                      >
-                        {step.role === "ia" && (
-                          <div style={{ fontSize: 10, color: "#00E5FF", fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>🤖 LUNA — IA</div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  {[
+                    ["Tom de Voz", "Caloroso, empolgado, amigável — como uma amiga que entende muito do produto"],
+                    ["Linguagem", "Português coloquial brasileiro, sem formalidade excessiva, sem gírias forçadas"],
+                    ["Emojis", "Moderados — 1 a 3 por mensagem, sempre contextuais e naturais"],
+                    ["Tamanho", "Respostas curtas (3–5 linhas), claras e diretas ao ponto"],
+                    ["Energia", "Alta disposição, sempre positiva, nunca apática ou mecânica"],
+                    ["Identidade", "NUNCA se identifica como IA — responde como atendente real da loja"],
+                  ].map(([k, v]) => (
+                    <div key={k} style={{ background: "#0A0A1A", borderRadius: 10, padding: 14, border: "1px solid #1A1A35" }}>
+                      <div style={{ fontSize: 9, color: "#7C3AED", letterSpacing: "0.12em", marginBottom: 4, fontFamily: "'DM Mono', monospace" }}>{k.toUpperCase()}</div>
+                      <div style={{ fontSize: 12, color: "#A0A8D8", lineHeight: 1.5, fontFamily: "'Sora', sans-serif", fontWeight: 300 }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div style={{ background: "#0A1A10", border: "1px solid #10B98133", borderRadius: 12, padding: 20 }}>
+                  <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, color: "#6EE7B7", marginBottom: 14, fontSize: 13 }}>✓ Luna FAZ</div>
+                  {["Chama pelo nome sempre que possível", "Termina com pergunta ou CTA", "Usa 'a gente' em vez de 'nós'", "Celebra a escolha do cliente", "Oferece ajuda proativamente", "Cria urgência sem pressão"].map(i => (
+                    <div key={i} style={{ fontSize: 12, color: "#7C85B0", marginBottom: 8, paddingLeft: 12, borderLeft: "2px solid #10B98144", lineHeight: 1.5 }}>{i}</div>
+                  ))}
+                </div>
+                <div style={{ background: "#1A0A0A", border: "1px solid #EF444433", borderRadius: 12, padding: 20 }}>
+                  <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, color: "#FCA5A5", marginBottom: 14, fontSize: 13 }}>✗ Luna EVITA</div>
+                  {['"Conforme solicitado..."', '"Prezado cliente"', "Responder sem CTA", "Textos longos e densos", "Dizer que é robô/IA", "Ignorar objeções de preço"].map(i => (
+                    <div key={i} style={{ fontSize: 12, color: "#7C85B0", marginBottom: 8, paddingLeft: 12, borderLeft: "2px solid #EF444444", lineHeight: 1.5 }}>{i}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── FLOWS ── */}
+          {active === "flows" && (
+            <div className="fade-up">
+              <span className="tag" style={{ background: "#10B98118", color: "#6EE7B7", border: "1px solid #10B98133", marginBottom: 12, display: "inline-flex" }}>CONVERSAS</span>
+              <h1 className="section-title">Fluxos Prontos</h1>
+              <p style={{ color: "#4A5080", marginBottom: 28, fontSize: 13, fontFamily: "'Sora', sans-serif" }}>Exemplos reais de atendimento automatizado pela Luna</p>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 28 }}>
+                {Object.keys(FLOWS).map(f => (
+                  <button key={f} className={`flow-tab ${activeFlow === f ? "active-tab" : ""}`} onClick={() => setActiveFlow(f)}>
+                    <span className="tag" style={{ background: FLOWS[f].tagColor + "22", color: FLOWS[f].tagColor, marginRight: 6, fontSize: 9, padding: "2px 6px" }}>{FLOWS[f].tag}</span>
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ background: "#0A0A18", border: `1px solid ${FLOWS[activeFlow].tagColor}33`, borderRadius: 16, overflow: "hidden" }}>
+                <div style={{
+                  padding: "14px 20px",
+                  background: `linear-gradient(135deg, ${FLOWS[activeFlow].tagColor}18, transparent)`,
+                  borderBottom: `1px solid ${FLOWS[activeFlow].tagColor}22`,
+                  display: "flex", alignItems: "center", gap: 10,
+                }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: FLOWS[activeFlow].tagColor }} />
+                  <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 13, color: FLOWS[activeFlow].tagColor }}>{activeFlow}</span>
+                  <span className="tag" style={{ background: FLOWS[activeFlow].tagColor + "22", color: FLOWS[activeFlow].tagColor, fontSize: 9, marginLeft: "auto" }}>{FLOWS[activeFlow].tag}</span>
+                </div>
+                <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+                  {FLOWS[activeFlow].steps.map((s, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: s.role === "ai" ? "flex-start" : "flex-end" }}>
+                      <div className={s.role === "ai" ? "bubble-ai" : "bubble-client"}>
+                        {s.role === "ai" && (
+                          <div style={{ fontSize: 9, color: "#7C3AED", fontFamily: "'DM Mono', monospace", letterSpacing: "0.1em", marginBottom: 6 }}>🌙 LUNA</div>
                         )}
-                        <div style={{ whiteSpace: "pre-wrap" }} dangerouslySetInnerHTML={{
-                          __html: step.msg
-                            .replace(/\*\*(.*?)\*\*/g, '<strong style="color:#fff">$1</strong>')
-                        }} />
+                        <div dangerouslySetInnerHTML={{ __html: s.msg.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#C4B5FD">$1</strong>') }} />
                       </div>
                     </div>
                   ))}
@@ -432,51 +590,46 @@ export default function VendAIPro() {
             </div>
           )}
 
-          {/* TECHNICAL */}
-          {activeSection === "technical" && (
-            <div>
-              <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>⚙️ Estrutura Técnica</h1>
-              <p style={{ color: "#888", marginBottom: 32 }}>Stack completo — sem código, apenas ferramentas no-code</p>
+          {/* ── TECHNICAL ── */}
+          {active === "technical" && (
+            <div className="fade-up">
+              <span className="tag" style={{ background: "#F59E0B18", color: "#FCD34D", border: "1px solid #F59E0B33", marginBottom: 12, display: "inline-flex" }}>NO-CODE</span>
+              <h1 className="section-title">Stack Técnica</h1>
+              <p style={{ color: "#4A5080", marginBottom: 28, fontSize: 13, fontFamily: "'Sora', sans-serif" }}>Implementação 100% sem código — apenas ferramentas visuais</p>
 
-              <div style={{
-                background: "#0d0d18", border: "1px solid #ffffff0f", borderRadius: 16, padding: 24, marginBottom: 32,
-              }}>
-                <div style={{ fontWeight: 700, marginBottom: 16, color: "#aaa", fontSize: 13 }}>FLUXO DE INTEGRAÇÃO</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto", paddingBottom: 8 }}>
-                  {["Instagram / WhatsApp", "ManyChat", "Make.com", "OpenAI GPT-4o", "Resposta ao Cliente"].map((item, i, arr) => (
-                    <>
-                      <div key={item} style={{
-                        background: "#1a1a2e", border: "1px solid #ffffff18",
-                        borderRadius: 10, padding: "10px 16px", whiteSpace: "nowrap",
-                        fontSize: 12, fontWeight: 600, color: ["#C77DFF","#FF6B6B","#FFD93D","#00E5FF","#69FF47"][i],
+              <div style={{ background: "#0D0D1F", border: "1px solid #1A1A35", borderRadius: 14, padding: 20, marginBottom: 28 }}>
+                <div style={{ fontSize: 10, color: "#4A5080", fontFamily: "'DM Mono', monospace", marginBottom: 14, letterSpacing: "0.1em" }}>FLUXO DE INTEGRAÇÃO</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+                  {["Instagram / WA", "ManyChat", "Make.com", "OpenAI", "Cliente"].map((item, i, arr) => (
+                    <div key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{
+                        background: "#0A0A1A", border: "1px solid #2A2A45",
+                        borderRadius: 8, padding: "8px 14px",
+                        fontSize: 11, fontFamily: "'DM Mono', monospace", whiteSpace: "nowrap",
+                        color: ["#A78BFA","#EF4444","#FCD34D","#6EE7B7","#38BDF8"][i],
                       }}>{item}</div>
-                      {i < arr.length - 1 && <span style={{ color: "#444", fontSize: 18 }}>→</span>}
-                    </>
+                      {i < arr.length - 1 && <span style={{ color: "#2A2A45", fontSize: 16 }}>→</span>}
+                    </div>
                   ))}
                 </div>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                {technicalStack.map(t => (
-                  <div className="card" key={t.tool} style={{
-                    background: "#0d0d18", border: `1px solid ${t.color}22`, borderRadius: 14, padding: 24,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                      <span style={{ fontSize: 28 }}>{t.icon}</span>
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: 16, color: t.color }}>{t.tool}</div>
-                        <div style={{ fontSize: 12, color: "#666" }}>{t.role}</div>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: 13, color: "#999", margin: "0 0 16px", lineHeight: 1.6 }}>{t.desc}</p>
-                    <div style={{ borderTop: `1px solid ${t.color}22`, paddingTop: 14 }}>
-                      <div style={{ fontSize: 11, color: t.color, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>PASSO A PASSO</div>
-                      {t.steps.map((s, i) => (
-                        <div key={i} style={{ display: "flex", gap: 10, marginBottom: 6 }}>
-                          <span style={{ color: t.color, fontSize: 12, fontWeight: 700, minWidth: 16 }}>{i + 1}.</span>
-                          <span style={{ fontSize: 13, color: "#bbb" }}>{s}</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {STACK.map(s => (
+                  <div key={s.name} className="card" style={{ background: s.bg, borderColor: s.color + "33" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{ fontSize: 26 }}>{s.icon}</span>
+                        <div>
+                          <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, color: s.color }}>{s.name}</div>
+                          <div style={{ fontSize: 12, color: "#4A5080", marginTop: 2 }}>{s.desc}</div>
                         </div>
-                      ))}
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                        {s.tags.map(t => (
+                          <span key={t} className="tag" style={{ background: s.color + "18", color: s.color, border: `1px solid ${s.color}33` }}>{t}</span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -484,105 +637,116 @@ export default function VendAIPro() {
             </div>
           )}
 
-          {/* PROMPT */}
-          {activeSection === "prompt" && (
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <h1 style={{ fontSize: 32, fontWeight: 800, margin: 0 }}>🧠 Prompt Mestre da IA</h1>
-                <button
-                  onClick={handleCopy}
-                  style={{
-                    background: copied ? "#69FF4722" : "#00E5FF18",
-                    border: `1px solid ${copied ? "#69FF47" : "#00E5FF"}44`,
-                    color: copied ? "#69FF47" : "#00E5FF",
-                    padding: "8px 20px", borderRadius: 8,
-                    fontSize: 13, fontWeight: 600, cursor: "pointer",
-                  }}
-                >{copied ? "✓ Copiado!" : "Copiar Prompt"}</button>
+          {/* ── PROMPT ── */}
+          {active === "prompt" && (
+            <div className="fade-up">
+              <span className="tag" style={{ background: "#8B5CF618", color: "#C4B5FD", border: "1px solid #8B5CF633", marginBottom: 12, display: "inline-flex" }}>CORE</span>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
+                <div>
+                  <h1 className="section-title">Prompt Mestre</h1>
+                  <p style={{ color: "#4A5080", fontSize: 13, fontFamily: "'Sora', sans-serif" }}>Cole como instrução de sistema na OpenAI</p>
+                </div>
+                <button className="copy-btn" onClick={handleCopy} style={{
+                  background: copied ? "#10B98118" : "#7C3AED18",
+                  border: `1px solid ${copied ? "#10B98144" : "#7C3AED44"}`,
+                  color: copied ? "#6EE7B7" : "#A78BFA",
+                }}>
+                  {copied ? "✓ copiado" : "$ copiar"}
+                </button>
               </div>
-              <p style={{ color: "#888", marginBottom: 24 }}>Cole este prompt no sistema da OpenAI como instrução de sistema</p>
 
               <div style={{
-                background: "#080810", border: "1px solid #00E5FF22",
-                borderRadius: 14, padding: 24, position: "relative",
+                background: "#070710",
+                border: "1px solid #1A1A35",
+                borderRadius: 14, overflow: "hidden",
               }}>
-                <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-                  {["#ff5f57","#febc2e","#28c840"].map(c => (
-                    <div key={c} style={{ width: 12, height: 12, borderRadius: "50%", background: c }} />
+                <div style={{
+                  padding: "12px 18px",
+                  background: "#0A0A1A",
+                  borderBottom: "1px solid #1A1A35",
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  {["#EF4444","#F59E0B","#10B981"].map(c => (
+                    <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c + "88" }} />
                   ))}
-                  <span style={{ fontSize: 11, color: "#555", marginLeft: 8 }}>system_prompt.txt</span>
+                  <span className="kbd" style={{ marginLeft: 8 }}>system_prompt.txt</span>
                 </div>
                 <pre style={{
-                  fontSize: 12.5, lineHeight: 1.8, color: "#b8b8d0", margin: 0,
-                  fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-                }}>{promptMaster}</pre>
+                  padding: 24, fontSize: 12, lineHeight: 1.8,
+                  color: "#7C85B0", fontFamily: "'DM Mono', monospace",
+                  overflowX: "auto", whiteSpace: "pre-wrap",
+                }}>{PROMPT}</pre>
               </div>
 
-              <div style={{
-                background: "#0d1a14", border: "1px solid #69FF4733",
-                borderRadius: 12, padding: 18, marginTop: 20,
-              }}>
-                <div style={{ fontWeight: 700, color: "#69FF47", marginBottom: 8 }}>💡 Dica de Implementação</div>
-                <p style={{ fontSize: 13, color: "#aaa", margin: 0, lineHeight: 1.6 }}>
-                  Substitua os campos entre colchetes [ASSIM] com dados reais da loja do cliente. Use temperatura 0.7 na OpenAI para respostas naturais mas consistentes. Com gpt-4o-mini, cada conversa custa menos de R$ 0,02.
+              <div style={{ background: "#0A1A10", border: "1px solid #10B98133", borderRadius: 12, padding: 16, marginTop: 16 }}>
+                <div style={{ fontSize: 11, color: "#6EE7B7", fontFamily: "'DM Mono', monospace", marginBottom: 6 }}>// DICA DE IMPLEMENTAÇÃO</div>
+                <p style={{ fontSize: 12, color: "#4A5080", lineHeight: 1.6, fontFamily: "'Sora', sans-serif", fontWeight: 300 }}>
+                  Substitua os campos entre colchetes [ASSIM] com dados reais da loja. Use temperatura 0.7 na OpenAI para respostas naturais. Com gpt-4o-mini, cada conversa custa menos de R$ 0,02.
                 </p>
               </div>
             </div>
           )}
 
-          {/* COMMERCIAL */}
-          {activeSection === "commercial" && (
-            <div>
-              <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>💼 Estratégia Comercial</h1>
-              <p style={{ color: "#888", marginBottom: 32 }}>Como vender o InstaFlow e faturar alto</p>
+          {/* ── COMMERCIAL ── */}
+          {active === "commercial" && (
+            <div className="fade-up">
+              <span className="tag" style={{ background: "#F59E0B18", color: "#FCD34D", border: "1px solid #F59E0B33", marginBottom: 12, display: "inline-flex" }}>NEGÓCIO</span>
+              <h1 className="section-title">Estratégia Comercial</h1>
+              <p style={{ color: "#4A5080", marginBottom: 32, fontSize: 13, fontFamily: "'Sora', sans-serif" }}>Como precificar, prospectar e fechar clientes</p>
 
-              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>🎯 Nichos Ideais</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 32 }}>
-                {niches.map(n => (
-                  <div className="card" key={n.name} style={{
-                    background: "#0d0d18", border: "1px solid #ffffff0f",
-                    borderRadius: 12, padding: 16, textAlign: "center",
-                  }}>
-                    <div style={{ fontSize: 28, marginBottom: 8 }}>{n.icon}</div>
-                    <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{n.name}</div>
-                    <div style={{ fontSize: 12, marginBottom: 6 }}>{n.potential}</div>
-                    <div style={{ fontSize: 11, color: "#666", lineHeight: 1.4 }}>{n.why}</div>
+              <h3 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#4A5080", letterSpacing: "0.1em", marginBottom: 16 }}>NICHOS IDEAIS</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 32 }}>
+                {[
+                  ["👗", "Moda Feminina", "⭐⭐⭐⭐⭐"],
+                  ["🐾", "Pet Shop", "⭐⭐⭐⭐⭐"],
+                  ["💄", "Cosméticos", "⭐⭐⭐⭐⭐"],
+                  ["💪", "Suplementos", "⭐⭐⭐⭐"],
+                  ["🏠", "Decoração", "⭐⭐⭐⭐"],
+                  ["🧸", "Infantil", "⭐⭐⭐⭐⭐"],
+                ].map(([icon, name, rating]) => (
+                  <div key={name} className="card" style={{ textAlign: "center", padding: 16 }}>
+                    <div style={{ fontSize: 26, marginBottom: 8 }}>{icon}</div>
+                    <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 12, marginBottom: 4 }}>{name}</div>
+                    <div style={{ fontSize: 10 }}>{rating}</div>
                   </div>
                 ))}
               </div>
 
-              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>💰 Tabela de Preços</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 32 }}>
-                {pricing.map(p => (
-                  <div
-                    className={`card ${p.highlight ? "highlight-plan" : ""}`}
-                    key={p.plan}
-                    style={{
-                      background: p.highlight ? `linear-gradient(135deg, #0d1a2e, #1a0d2e)` : "#0d0d18",
-                      border: `1px solid ${p.color}${p.highlight ? "66" : "33"}`,
-                      borderRadius: 14, padding: 20,
-                      marginTop: p.highlight ? 12 : 0,
-                    }}>
-                    <div style={{ fontWeight: 800, color: p.color, marginBottom: 4 }}>{p.plan}</div>
-                    <div style={{ fontSize: 28, fontWeight: 800, marginBottom: 2 }}>{p.price}</div>
-                    <div style={{ fontSize: 11, color: "#666", marginBottom: 16 }}>{p.period}</div>
-                    {p.includes.map(i => (
-                      <div key={i} style={{ fontSize: 12, color: "#bbb", marginBottom: 6, display: "flex", gap: 6 }}>
-                        <span style={{ color: p.color }}>✓</span> {i}
+              <h3 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#4A5080", letterSpacing: "0.1em", marginBottom: 16 }}>TABELA DE PREÇOS</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 32 }}>
+                {PRICING.map(p => (
+                  <div key={p.name} className={`card ${p.highlight ? "highlight-plan" : ""}`} style={{
+                    borderColor: p.highlight ? p.color + "55" : p.color + "22",
+                    position: "relative",
+                  }}>
+                    {p.highlight && (
+                      <div style={{
+                        position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
+                        background: `linear-gradient(90deg, #7C3AED, #0EA5E9)`,
+                        color: "#fff", fontSize: 9, padding: "3px 12px", borderRadius: 20,
+                        fontFamily: "'DM Mono', monospace", letterSpacing: "0.1em", whiteSpace: "nowrap",
+                      }}>MAIS VENDIDO</div>
+                    )}
+                    <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: p.color, letterSpacing: "0.1em", marginBottom: 8 }}>{p.name.toUpperCase()}</div>
+                    <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 24, fontWeight: 800, color: "#E2E8FF", marginBottom: 2 }}>{p.setup}</div>
+                    <div style={{ fontSize: 11, color: "#4A5080", marginBottom: 16 }}>setup + {p.monthly}</div>
+                    {p.features.map(f => (
+                      <div key={f} style={{ fontSize: 11, color: "#7C85B0", marginBottom: 6, display: "flex", gap: 8 }}>
+                        <span style={{ color: p.color }}>›</span> {f}
                       </div>
                     ))}
                   </div>
                 ))}
               </div>
 
-              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>📩 Mensagem Pronta de Prospecção</h2>
+              <h3 style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#4A5080", letterSpacing: "0.1em", marginBottom: 12 }}>MENSAGEM DE PROSPECÇÃO</h3>
               <div style={{
-                background: "#080810", border: "1px solid #C77DFF33",
-                borderRadius: 14, padding: 24, fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 13, lineHeight: 1.8, color: "#c8c8e0",
+                background: "#070710", border: "1px solid #1A1A35",
+                borderRadius: 12, padding: 20,
+                fontFamily: "'DM Mono', monospace", fontSize: 12, lineHeight: 1.8, color: "#7C85B0",
               }}>
-                <div style={{ color: "#666", marginBottom: 8, fontSize: 11 }}>// Enviar por WhatsApp ou Instagram DM</div>
-                {`Oi [Nome]! 👋
+                <div style={{ color: "#2A3060", marginBottom: 8, fontSize: 10 }}>// copie e envie pelo WhatsApp ou Instagram DM</div>
+{`Oi [Nome]! 👋
 
 Vi sua loja no Instagram e percebi que vocês atendem muita gente por DM e WhatsApp...
 
@@ -594,48 +758,43 @@ Minha solução, o InstaFlow, faz exatamente isso:
 ✅ Recupera clientes indecisos
 ✅ Funciona 24h no Instagram e WhatsApp
 
-Tenho lojas do mesmo segmento faturando [X]% a mais no primeiro mês.
+Tenho lojas do mesmo segmento faturando mais no primeiro mês.
 
-Posso te mostrar uma demo de 10 minutos esta semana?`}
+Posso te mostrar uma demo de 10 minutos essa semana?`}
               </div>
             </div>
           )}
 
-          {/* EXTRAS */}
-          {activeSection === "extras" && (
-            <div>
-              <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>✨ Funções Extras</h1>
-              <p style={{ color: "#888", marginBottom: 32 }}>Add-ons premium para aumentar valor percebido e ticket médio</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                {extras.map(e => (
-                  <div className="card" key={e.name} style={{
-                    background: "#0d0d18", border: "1px solid #ffffff0a",
-                    borderRadius: 14, padding: 20,
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                      <div>
-                        <span style={{ fontSize: 24 }}>{e.icon}</span>
-                        <div style={{ fontWeight: 700, fontSize: 14, marginTop: 6 }}>{e.name}</div>
-                      </div>
-                      <span className="tag" style={{ background: "#00E5FF18", color: "#00E5FF", border: "1px solid #00E5FF33", whiteSpace: "nowrap" }}>
-                        +{e.value}
-                      </span>
+          {/* ── EXTRAS ── */}
+          {active === "extras" && (
+            <div className="fade-up">
+              <span className="tag" style={{ background: "#EF444418", color: "#FCA5A5", border: "1px solid #EF444433", marginBottom: 12, display: "inline-flex" }}>ADD-ONS</span>
+              <h1 className="section-title">Funções Extras</h1>
+              <p style={{ color: "#4A5080", marginBottom: 32, fontSize: 13, fontFamily: "'Sora', sans-serif" }}>Módulos premium que aumentam o ticket médio por cliente</p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
+                {ADDONS.map(a => (
+                  <div key={a.name} className="card">
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <span style={{ fontSize: 24 }}>{a.icon}</span>
+                      <span className="tag" style={{ background: "#0EA5E918", color: "#38BDF8", border: "1px solid #0EA5E933" }}>{a.value}</span>
                     </div>
-                    <p style={{ fontSize: 13, color: "#888", margin: 0, lineHeight: 1.5 }}>{e.desc}</p>
+                    <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>{a.name}</div>
+                    <div style={{ fontSize: 12, color: "#4A5080", lineHeight: 1.5 }}>{a.desc}</div>
                   </div>
                 ))}
               </div>
+
               <div style={{
-                background: "linear-gradient(135deg, #0d1a2e, #1a0d2e)",
-                border: "1px solid #00E5FF33", borderRadius: 14, padding: 24, marginTop: 24,
+                background: "linear-gradient(135deg, #0D0D2A, #0A1228)",
+                border: "1px solid #0EA5E933", borderRadius: 14, padding: 24,
               }}>
-                <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>🧮 Potencial de Receita</div>
-                <p style={{ fontSize: 13, color: "#aaa", margin: "0 0 16px" }}>Com 10 clientes no plano Pro + 3 add-ons cada:</p>
-                <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-                  {[["Setup (único)", "R$ 9.970"], ["Mensalidade", "R$ 3.970/mês"], ["Add-ons médios", "R$ 2.400/mês"], ["Total Mês 1", "R$ 16.340"]].map(([l, v]) => (
+                <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 6 }}>🧮 Projeção com 10 clientes Pro + add-ons</div>
+                <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginTop: 16 }}>
+                  {[["Setup (único)", "R$ 9.970", "#A78BFA"], ["Mensalidades", "R$ 3.970/mês", "#38BDF8"], ["Add-ons médios", "R$ 2.400/mês", "#6EE7B7"], ["Total Mês 1", "R$ 16.340", "#FCD34D"]].map(([l, v, c]) => (
                     <div key={l}>
-                      <div style={{ fontSize: 11, color: "#666", marginBottom: 2 }}>{l}</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#00E5FF" }}>{v}</div>
+                      <div style={{ fontSize: 10, color: "#4A5080", fontFamily: "'DM Mono', monospace", marginBottom: 4 }}>{l}</div>
+                      <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 22, fontWeight: 800, color: c }}>{v}</div>
                     </div>
                   ))}
                 </div>
@@ -643,30 +802,35 @@ Posso te mostrar uma demo de 10 minutos esta semana?`}
             </div>
           )}
 
-          {/* DELIVERY */}
-          {activeSection === "delivery" && (
-            <div>
-              <h1 style={{ fontSize: 32, fontWeight: 800, marginBottom: 8 }}>🚀 Entrega Final</h1>
-              <p style={{ color: "#888", marginBottom: 32 }}>Checklist completo para ir ao ar em 48 horas</p>
+          {/* ── DELIVERY ── */}
+          {active === "delivery" && (
+            <div className="fade-up">
+              <span className="tag" style={{ background: "#10B98118", color: "#6EE7B7", border: "1px solid #10B98133", marginBottom: 12, display: "inline-flex" }}>CHECKLIST</span>
+              <h1 className="section-title">Entrega em 48h</h1>
+              <p style={{ color: "#4A5080", marginBottom: 32, fontSize: 13, fontFamily: "'Sora', sans-serif" }}>Cronograma completo de implementação do zero ao ar</p>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 32 }}>
                 {[
-                  { phase: "Hora 1-4", title: "Setup das ferramentas", color: "#00E5FF", tasks: ["Criar conta ManyChat (gratuito)", "Criar conta Make.com (gratuito)", "Gerar API Key OpenAI", "Conectar Instagram e WhatsApp Business ao ManyChat"] },
-                  { phase: "Hora 4-12", title: "Construção dos fluxos", color: "#69FF47", tasks: ["Criar fluxo de boas-vindas no ManyChat", "Configurar palavras-chave (oi, olá, preço, prazo...)", "Montar cenário no Make.com (Webhook → OpenAI → Resposta)", "Testar fluxo completo"] },
-                  { phase: "Hora 12-24", title: "Personalização da IA", color: "#FFD93D", tasks: ["Preencher prompt mestre com dados da loja", "Configurar produtos, preços e políticas", "Criar cupons de recuperação", "Testar 10 conversas diferentes"] },
-                  { phase: "Hora 24-48", title: "Otimização e entrega", color: "#C77DFF", tasks: ["Ajustar respostas que soaram robóticas", "Configurar recuperação de carrinho (24h)", "Documentar acesso para o cliente", "Treinamento de 1h com o cliente"] },
+                  { phase: "H 01–04", title: "Setup das ferramentas", color: "#7C3AED", pct: 25, tasks: ["Criar conta ManyChat", "Criar conta Make.com", "Gerar API Key OpenAI", "Conectar Instagram + WhatsApp Business"] },
+                  { phase: "H 04–12", title: "Construção dos fluxos", color: "#0EA5E9", pct: 50, tasks: ["Criar fluxo boas-vindas no ManyChat", "Configurar palavras-chave gatilho", "Montar cenário no Make.com", "Testar fluxo completo"] },
+                  { phase: "H 12–24", title: "Personalização da IA", color: "#10B981", pct: 75, tasks: ["Preencher prompt com dados da loja", "Configurar produtos e preços", "Criar cupons de recuperação", "Testar 10 conversas"] },
+                  { phase: "H 24–48", title: "Entrega ao cliente", color: "#F59E0B", pct: 100, tasks: ["Ajustar respostas robóticas", "Configurar recuperação de carrinho", "Documentar acessos", "Treinamento de 1h com cliente"] },
                 ].map(p => (
-                  <div key={p.phase} className="card" style={{
-                    background: "#0d0d18", border: `1px solid ${p.color}22`, borderRadius: 14, padding: 20,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                      <span className="tag" style={{ background: `${p.color}18`, color: p.color, border: `1px solid ${p.color}44` }}>{p.phase}</span>
-                      <span style={{ fontWeight: 700, fontSize: 15 }}>{p.title}</span>
+                  <div key={p.phase} className="card" style={{ borderColor: p.color + "22" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span className="tag" style={{ background: p.color + "18", color: p.color, border: `1px solid ${p.color}44` }}>{p.phase}</span>
+                        <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 14 }}>{p.title}</span>
+                      </div>
+                      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: p.color }}>{p.pct}%</span>
+                    </div>
+                    <div className="progress-bar" style={{ marginBottom: 16 }}>
+                      <div className="progress-fill" style={{ width: `${p.pct}%`, background: `linear-gradient(90deg, ${p.color}, ${p.color}88)` }} />
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                       {p.tasks.map(t => (
-                        <div key={t} style={{ display: "flex", gap: 8, fontSize: 13, color: "#aaa" }}>
-                          <span style={{ color: p.color, marginTop: 1 }}>◻</span> {t}
+                        <div key={t} style={{ display: "flex", gap: 8, fontSize: 12, color: "#4A5080" }}>
+                          <span style={{ color: p.color, marginTop: 1, fontSize: 10 }}>◻</span> {t}
                         </div>
                       ))}
                     </div>
@@ -675,26 +839,23 @@ Posso te mostrar uma demo de 10 minutos esta semana?`}
               </div>
 
               <div style={{
-                background: "linear-gradient(135deg, #060612, #0d0d20)",
-                border: "1px solid #ffffff18", borderRadius: 16, padding: 32, textAlign: "center",
+                background: "linear-gradient(135deg, #0D0D2A, #0A1228)",
+                border: "1px solid #7C3AED33",
+                borderRadius: 16, padding: 32, textAlign: "center",
               }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
-                <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>InstaFlow — Pronto para Vender</h2>
-                <p style={{ color: "#888", marginBottom: 20, maxWidth: 500, margin: "0 auto 20px" }}>
-                  Uma solução moderna, escalável e com alto valor percebido. Mínimo de implementação, máximo de resultado para o cliente.
-                </p>
-                <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
-                  {["48h para implementar", "Sem código necessário", "R$ 497 a R$ 1.997 por venda", "Recorrência mensal"].map(b => (
-                    <span key={b} className="tag" style={{
-                      background: "#ffffff08", border: "1px solid #ffffff18",
-                      color: "#ccc", fontSize: 13, padding: "8px 16px",
-                    }}>{b}</span>
+                <div style={{ fontSize: 36, marginBottom: 14 }}>🚀</div>
+                <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 20, fontWeight: 800, marginBottom: 8, background: "linear-gradient(90deg, #C4B5FD, #38BDF8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>InstaFlow — Pronto para Vender</div>
+                <p style={{ color: "#4A5080", fontSize: 13, marginBottom: 22, fontFamily: "'Sora', sans-serif" }}>Implementação em 48h. Sem código. Resultado no primeiro mês.</p>
+                <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+                  {["48h para implementar", "Sem código", "R$ 497–R$ 1.997/cliente", "Recorrência mensal"].map(b => (
+                    <span key={b} className="tag" style={{ background: "#FFFFFF08", border: "1px solid #1A1A35", color: "#7C85B0", fontSize: 11, padding: "7px 14px" }}>{b}</span>
                   ))}
                 </div>
               </div>
             </div>
           )}
-        </div>
+
+        </main>
       </div>
     </div>
   );
